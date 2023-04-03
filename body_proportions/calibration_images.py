@@ -15,7 +15,7 @@ cams.start()
 
 num = 0
 
-def filp_correction (img):
+def flip_correction (img):
     return img [::-1][:,::-1]
 
 def save_images(img1,img2,num):
@@ -39,8 +39,8 @@ while cams.isOpened():
     frame1,frame2 = cams.get_frames()
     _,img= frame1
     _,img2= frame2
-    img = filp_correction(img)
-    img2 = filp_correction(img2)
+    #  img = flip_correction(img)
+    #  img2 = flip_correction(img2)
 
 
     k = cv2.waitKey(5)

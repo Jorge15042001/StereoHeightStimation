@@ -49,8 +49,8 @@ while(cams.isOpened()):
   frame1,frame2 = cams.get_frames()
   succes_left,frame_left= frame1
   succes_right,frame_right= frame2
-  frame_left= filp_correction(frame_left)
-  frame_right= filp_correction(frame_right)
+  #  frame_left= filp_correction(frame_left)
+  #  frame_right= filp_correction(frame_right)
 
   if not succes_right or not succes_left:
     print("Ignoring empty camera frame.")
