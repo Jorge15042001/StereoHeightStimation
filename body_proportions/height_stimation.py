@@ -1,101 +1,31 @@
-from datetime import datetime
 import cv2
 import numpy as np
 from calibration import getStereoRectifier
 from triangulation import find_depth_from_disparities
 import mediapipe as mp
 from cameraArray import CamArray
+from featuresExtractor import FaceFeatures, FeaturesExtractor
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 mp_pose = mp.solutions.pose
 
-B = 16  # Distance between the cameras [cm]
+
 def depth_to_pixels_size(x): return 0.001315666666666666*x+0.00979
 
 
-left_cam_idx = 2
-right_cam_idx = 4
-cams = CamArray([left_cam_idx, right_cam_idx])
-cams.start()
+def computeDepth(keypoinsL, keypoinsR, cams_sep, f_length):
+    return find_depth_from_disparities(keypoinsL[:, 0], keypoinsR[:, 0],
+                                       cams_sep, f_length)
 
 
-class StereoHeightStimattor:
-    def __init__(self, cams_separation, focal_length,
-                 calib_file, depth_to_pixels_size):
-
-        self.pose_left = mp_pose.Pose(model_complexity=1,
-                                      min_detection_confidence=0.5,
-                                      min_tracking_confidence=0.5)
-        self.pose_right = mp_pose.Pose(model_complexity=1,
-                                       min_detection_confidence=0.5,
-                                       min_tracking_confidence=0.5)
-        self.cams_separation = cams_separation
-        self.focal_length = focal_length
-        self.rectify = getStereoRectifier(calib_file)
-        self.depth_from_disparities = find_depth_from_disparities
-        self.depth_to_pixels_size = depth_to_pixels_size
-
-    def extract_keypts(self, mppose, frame):
-        frame_height, frame_width, _ = frame.shape
-
-        frame.flags.writeable = False  # TODO: does this improve performance?
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-        results = mppose.process(frame)
-
-        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-        frame.flags.writeable = True
-
-        if not results.pose_landmarks:
-            return (False, None)
-
-        coords = np.array(list(map(lambda pt: (pt.x, pt.y),
-                                   results.pose_landmarks.landmark[:11])))
-        #  coords = (coords*np.array((frame_width, frame_height))).astype(int)
-        coords = (coords*np.array((frame_width, frame_height)))
-        #  mp_drawing.draw_landmarks(
-        #      frame,
-        #      results.pose_landmarks,
-        #      mp_pose.POSE_CONNECTIONS,
-        #      landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style()
-        #  )
-        return (True, coords)
-
-    def predict(self, frame_left, frame_right):
-        frame_right, frame_left = self.rectify(frame_right, frame_left)
-
-        ret_left, coords_left = self.extract_keypts(self.pose_left,
-                                                    frame_left)
-        ret_right, coords_right = self.extract_keypts(self.pose_right,
-                                                      frame_right)
-
-        if not ret_left or not ret_right:
-            return (False, 0, 0)
-
-        # ignore the ear keypots
-        coords_right_depth = np.array(list(coords_right[:7]) +
-                                      list(coords_right[9:]))
-
-        coords_left_depth = np.array(list(coords_left[:7]) +
-                                     list(coords_left[9:]))
-
-        depth = self.depth_from_disparities(coords_right_depth[:, 0],
-                                                coords_left_depth[:, 0],
-                                                self.cams_separation,
-                                                self.focal_length
-                                                )
-
-        eye = np.mean([coords_left[2, :], coords_left[5, :]], axis=0)
-        mouth = np.mean([coords_left[9, :], coords_left[10, :]], axis=0)
-
-        mouth_eye = ((eye[0]-mouth[0])**2+(eye[1]-mouth[1])**2)**0.5
-
-        px_size = self.depth_to_pixels_size(depth)
-        head_size = mouth_eye * px_size * 3
-        height = head_size * 8
-
-        return (True, height, depth)
+def computeHeigth(features: FaceFeatures, pixel_size: float):
+    mid_eye = np.mean((features.eye1, features.eye2), axis=0)
+    mouth_eye = ((mid_eye[0]-features.mouth[0])**2 +
+                 (mid_eye[1]-features.mouth[1])**2) ** 0.5
+    head_size = mouth_eye * pixel_size * 3
+    height = head_size * 8
+    return height
 
 
 def putHeightResult(frame_left, frame_right, success_height, height, depth):
@@ -116,11 +46,20 @@ def putHeightResult(frame_left, frame_right, success_height, height, depth):
 
 
 if __name__ == "__main__":
-    height_stimator = StereoHeightStimattor(B, 829.4, "./stereoMap.xml",
-                                            depth_to_pixels_size)
+    B = 16  # Distance between the cameras [cm]
+    left_cam_idx = 2
+    right_cam_idx = 4
+    cams = CamArray([left_cam_idx, right_cam_idx])
+    cams.start()
+    print("cameras started")
+
+    rectify = getStereoRectifier("./stereoMap.xml")
+    features_left_extractor = FeaturesExtractor()
+    features_right_extractor = FeaturesExtractor()
 
     while cams.isOpened():
         frame_left, frame_right = cams.get_frames()
+        print(frame_left)
         succes_left, frame_left = frame_left
         succes_right, frame_right = frame_right
 
@@ -128,9 +67,18 @@ if __name__ == "__main__":
             print("Ignoring empty camera frame.")
             continue
 
-        height_result = height_stimator.predict(frame_left, frame_right)
+        frame_left, frame_right = rectify(frame_left, frame_right)
+        features_left = features_left_extractor.extract_keypts(frame_left)
+        features_right = features_right_extractor.extract_keypts(frame_right)
 
-        putHeightResult(frame_left, frame_right, *height_result)
+        if not features_left[0] or not features_right[0]:
+            putHeightResult(frame_left, frame_right, False, 0, 0)
+            continue
+        depth = computeDepth(features_left[2], features_right[2])
+        px_size = depth_to_pixels_size(depth)
+        height = computeHeigth(features_left, px_size)
+
+        putHeightResult(frame_left, frame_right, True, height, depth)
 
         cv2.imshow("frame right", frame_right)
         cv2.imshow("frame left", frame_left)
