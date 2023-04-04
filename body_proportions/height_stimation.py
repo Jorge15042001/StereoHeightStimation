@@ -74,9 +74,9 @@ if __name__ == "__main__":
         if not features_left[0] or not features_right[0]:
             putHeightResult(frame_left, frame_right, False, 0, 0)
             continue
-        depth = computeDepth(features_left[2], features_right[2])
+        depth = computeDepth(features_left[2], features_right[2], B, 829.4)
         px_size = depth_to_pixels_size(depth)
-        height = computeHeigth(features_left, px_size)
+        height = computeHeigth(features_left[1], px_size)
 
         putHeightResult(frame_left, frame_right, True, height, depth)
 
