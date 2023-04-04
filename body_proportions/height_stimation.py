@@ -5,6 +5,7 @@ from triangulation import find_depth_from_disparities
 import mediapipe as mp
 from cameraArray import CamArray
 from featuresExtractor import FaceFeatures, FeaturesExtractor
+from utils import loadCamArrayFromJson
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -47,9 +48,7 @@ def putHeightResult(frame_left, frame_right, success_height, height, depth):
 
 if __name__ == "__main__":
     B = 16  # Distance between the cameras [cm]
-    left_cam_idx = 2
-    right_cam_idx = 4
-    cams = CamArray([left_cam_idx, right_cam_idx])
+    cams = loadCamArrayFromJson("./stereo_config.json")
     cams.start()
     print("cameras started")
 

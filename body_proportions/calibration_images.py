@@ -1,17 +1,13 @@
 import cv2
 from cameraArray import CamArray
 from datetime import datetime
+from utils import loadCamArrayFromJson
 import os
 
 images_dir = "./images"
 if not os.path.exists(images_dir):
     os.makedirs(images_dir)
 
-
-left_cam_idx = 2
-right_cam_idx = 4
-cams = CamArray([left_cam_idx, right_cam_idx])
-cams.start()
 
 def flip_correction(img):
     return img[::-1][:, ::-1]
@@ -56,3 +52,10 @@ def capture_images(cams:CamArray):
 
         cv2.imshow('Img 1', img_left)
         cv2.imshow('Img 2', img_right)
+
+
+if __name__ == "__main__":
+    cams = loadCamArrayFromJson("./stereo_config.json")
+    cams.start()
+    capture_images(cams)
+    cams.close()

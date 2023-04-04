@@ -101,19 +101,14 @@ def saveCameraParameters(filename: str, calib_left: CalibrationResult,
                          calib_right: CalibrationResult):
     json_file = open(filename, "r")
     config = json.load(json_file)
-    json_file.close()
-
     config["left_camera"]["fpx"] = calib_left.newCameraMatrix[0, 0]
     config["right_camera"]["fpx"] = calib_right.newCameraMatrix[0, 0]
 
-    config["left_camera"]["center"] = (calib_left.newCameraMatrix[0, 2],
-                                       calib_left.newCameraMatrix[1, 2],)
-    config["right_camera"]["center"] = (calib_right.newCameraMatrix[0, 2],
-                                        calib_right.newCameraMatrix[1, 2],)
-    new_config:str = json.dumps(config, indent=4)
-    json_file = open(filename, "w")
-    json_file.write(new_config)
-    json_file.close()
+    config["left_camera"]["center"] = (calib_left.newCameraMatrix[1, 2],
+                                       calib_left.newCameraMatrix[0, 2],)
+    config["right_camera"]["center"] = (calib_right.newCameraMatrix[1, 2],
+                                        calib_right.newCameraMatrix[0, 2],)
+    print(config)
 
 
 def rectifyImages(rectifier, imgsL, imgsR):
@@ -188,4 +183,4 @@ if __name__ == "__main__":
     calib_rectified_result = cameraCalibrationFromImages((8, 6), (640, 480),
                                                          rectifiedL, rectifiedR)
     saveCameraParameters("./stereo_config.json",
-                         calib_rectified_result[1], calib_rectified_result[2])
+                         calib_result[1], calib_result[2])
