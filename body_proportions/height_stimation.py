@@ -5,7 +5,7 @@ from triangulation import find_depth_from_disparities
 import mediapipe as mp
 from cameraArray import CamArray
 from featuresExtractor import FaceFeatures, FeaturesExtractor
-from utils import loadCamArrayFromJson
+from utils import loadCamArrayFromJson, loadStereoCameraParameter
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -28,6 +28,15 @@ def computeHeigth(features: FaceFeatures, pixel_size: float):
     height = head_size * 8
     return height
 
+def computeHeigth2(features: FaceFeatures, pixel_size: float,cam_center):
+    mid_eye_y = np.mean((features.eye1, features.eye2), axis=0)[1]
+    cam_center_y = cam_center[1]
+    
+    height = (mid_eye_y-cam_center_y)*pixel_size *-1
+    
+    #  height = head_size * 8
+    return height 
+
 
 def putHeightResult(frame_left, frame_right, success_height, height, depth):
 
@@ -47,10 +56,10 @@ def putHeightResult(frame_left, frame_right, success_height, height, depth):
 
 
 if __name__ == "__main__":
-    B = 16  # Distance between the cameras [cm]
+    cam_sep, f_length,cam_centers = loadStereoCameraParameter("./stereo_config.json")
+    cam_center_left, cam_center_right = cam_centers
     cams = loadCamArrayFromJson("./stereo_config.json")
     cams.start()
-    print("cameras started")
 
     rectify = getStereoRectifier("./stereoMap.xml")
     features_left_extractor = FeaturesExtractor()
@@ -58,7 +67,6 @@ if __name__ == "__main__":
 
     while cams.isOpened():
         frame_left, frame_right = cams.get_frames()
-        print(frame_left)
         succes_left, frame_left = frame_left
         succes_right, frame_right = frame_right
 
@@ -67,20 +75,24 @@ if __name__ == "__main__":
             continue
 
         frame_left, frame_right = rectify(frame_left, frame_right)
+
         features_left = features_left_extractor.extract_keypts(frame_left)
         features_right = features_right_extractor.extract_keypts(frame_right)
 
         if not features_left[0] or not features_right[0]:
             putHeightResult(frame_left, frame_right, False, 0, 0)
             continue
-        depth = computeDepth(features_left[2], features_right[2], B, 829.4)
+        
+        depth = computeDepth(features_left[2], features_right[2],
+                             cam_sep, f_length)
         px_size = depth_to_pixels_size(depth)
-        height = computeHeigth(features_left[1], px_size)
+        #  height = computeHeigth(features_left[1], px_size)
+        height = computeHeigth2(features_left[1], px_size,cam_center_left) + 141
 
         putHeightResult(frame_left, frame_right, True, height, depth)
 
-        cv2.imshow("frame right", frame_right)
-        cv2.imshow("frame left", frame_left)
+        cv2.imshow("frame right", cv2.resize(frame_right,(np.array(frame_right.shape[:2][::-1])*1.5).astype(int)))
+        cv2.imshow("frame left", cv2.resize(frame_left,(np.array(frame_right.shape[:2][::-1])*1.5).astype(int)))
         if cv2.waitKey(5) & 0xFF == 27:
             break
 
