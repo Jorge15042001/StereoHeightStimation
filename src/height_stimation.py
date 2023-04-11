@@ -5,7 +5,7 @@ from triangulation import find_depth_from_disparities
 import mediapipe as mp
 from cameraArray import CamArray
 from featuresExtractor import FaceFeatures, FeaturesExtractor
-from utils import loadCamArrayFromJson, loadStereoCameraParameter
+from utils import startCameraArray, loadStereoCameraConfig, StereoConfig
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -56,9 +56,10 @@ def putHeightResult(frame_left, frame_right, success_height, height, depth):
 
 
 if __name__ == "__main__":
-    cam_sep, f_length,cam_centers = loadStereoCameraParameter("./stereo_config.json")
-    cam_center_left, cam_center_right = cam_centers
-    cams = loadCamArrayFromJson("./stereo_config.json")
+    stereo_config = loadStereoCameraConfig("./stereo_config.json")
+    #  cam_center_left, cam_center_right = cam_centers
+    f_length =  min(stereo_config.left_camera.fpx,stereo_config.right_camera.fpx)
+    cams = startCameraArray(stereo_config.left_camera, stereo_config.right_camera)
     cams.start()
 
     rectify = getStereoRectifier("./stereoMap.xml")
@@ -80,14 +81,14 @@ if __name__ == "__main__":
         features_right = features_right_extractor.extract_keypts(frame_right)
 
         if not features_left[0] or not features_right[0]:
-            putHeightResult(frame_left, frame_right, False, 0, 0)
             continue
         
         depth = computeDepth(features_left[2], features_right[2],
-                             cam_sep, f_length)
-        px_size = depth_to_pixels_size(depth)
+                             stereo_config.cam_separation, f_length)
+
+        px_size = stereo_config.depth_to_pixel_size * depth
         #  height = computeHeigth(features_left[1], px_size)
-        height = computeHeigth2(features_left[1], px_size,cam_center_left) + 141
+        height = computeHeigth2(features_left[1], px_size, stereo_config.left_camera.center)
 
         putHeightResult(frame_left, frame_right, True, height, depth)
 
