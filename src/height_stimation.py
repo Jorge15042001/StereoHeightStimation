@@ -28,14 +28,15 @@ def computeHeigth(features: FaceFeatures, pixel_size: float):
     height = head_size * 8
     return height
 
-def computeHeigth2(features: FaceFeatures, pixel_size: float,cam_center):
+
+def computeHeigth2(features: FaceFeatures, pixel_size: float, cam_center):
     mid_eye_y = np.mean((features.eye1, features.eye2), axis=0)[1]
     cam_center_y = cam_center[1]
-    
-    height = (mid_eye_y-cam_center_y)*pixel_size *-1
-    
+
+    height = (mid_eye_y-cam_center_y)*pixel_size * -1
+
     #  height = head_size * 8
-    return height 
+    return height
 
 
 def putHeightResult(frame_left, frame_right, success_height, height, depth):
@@ -58,8 +59,10 @@ def putHeightResult(frame_left, frame_right, success_height, height, depth):
 if __name__ == "__main__":
     stereo_config = loadStereoCameraConfig("./stereo_config.json")
     #  cam_center_left, cam_center_right = cam_centers
-    f_length =  min(stereo_config.left_camera.fpx,stereo_config.right_camera.fpx)
-    cams = startCameraArray(stereo_config.left_camera, stereo_config.right_camera)
+    f_length = min(stereo_config.left_camera.fpx,
+                   stereo_config.right_camera.fpx)
+    cams = startCameraArray(stereo_config.left_camera,
+                            stereo_config.right_camera)
     cams.start()
 
     rectify = getStereoRectifier("./stereoMap.xml")
@@ -82,18 +85,21 @@ if __name__ == "__main__":
 
         if not features_left[0] or not features_right[0]:
             continue
-        
+
         depth = computeDepth(features_left[2], features_right[2],
                              stereo_config.cam_separation, f_length)
 
         px_size = stereo_config.depth_to_pixel_size * depth
         #  height = computeHeigth(features_left[1], px_size)
-        height = computeHeigth2(features_left[1], px_size, stereo_config.left_camera.center)
+        height = computeHeigth2(
+            features_left[1], px_size, stereo_config.left_camera.center)
 
         putHeightResult(frame_left, frame_right, True, height, depth)
 
-        cv2.imshow("frame right", cv2.resize(frame_right,(np.array(frame_right.shape[:2][::-1])*1.5).astype(int)))
-        cv2.imshow("frame left", cv2.resize(frame_left,(np.array(frame_right.shape[:2][::-1])*1.5).astype(int)))
+        cv2.imshow("frame right", cv2.resize(
+            frame_right, (np.array(frame_right.shape[:2][::-1])*1.5).astype(int)))
+        cv2.imshow("frame left", cv2.resize(
+            frame_left, (np.array(frame_right.shape[:2][::-1])*1.5).astype(int)))
         if cv2.waitKey(5) & 0xFF == 27:
             break
 
