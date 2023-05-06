@@ -17,5 +17,6 @@
     },
     "separation": 16,
     "stereo_map_file": "./stereoMap.xml",
-    "depth_to_pixel_size": 0.001315666666666666
+    "depth_to_pixel_size": 0.001315666666666666,
+    "show_imgaes": false
 }
