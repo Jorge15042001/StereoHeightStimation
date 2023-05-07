@@ -1,5 +1,5 @@
 
-from cameraArray import CamArray
+from .cameraArray import CamArray
 from typing import List
 
 import json

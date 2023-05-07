@@ -1,9 +1,8 @@
 import cv2
 import numpy as np
-from triangulation import find_depth_from_disparities
+from .triangulation import find_depth_from_disparities
 import mediapipe as mp
 from dataclasses import dataclass
-from enum import Enum
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles

@@ -1,12 +1,11 @@
 import cv2
 import numpy as np
-from calibration import getStereoRectifier
-from triangulation import find_depth_from_disparities
+from .calibration import getStereoRectifier
+from .triangulation import find_depth_from_disparities
 import mediapipe as mp
 import threading
-from cameraArray import CamArray
-from featuresExtractor import FaceFeatures, FeaturesExtractor
-from utils import startCameraArray, loadStereoCameraConfig, StereoConfig
+from .featuresExtractor import FaceFeatures, FeaturesExtractor
+from .utils import startCameraArray, loadStereoCameraConfig, StereoConfig
 from time import sleep
 
 mp_drawing = mp.solutions.drawing_utils
