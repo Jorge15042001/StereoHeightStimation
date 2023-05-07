@@ -7,6 +7,7 @@ import threading
 from .featuresExtractor import FaceFeatures, FeaturesExtractor
 from .utils import startCameraArray, loadStereoCameraConfig, StereoConfig
 from time import sleep
+import sys
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -201,7 +202,8 @@ def person_leaves():
 
 
 if __name__ == "__main__":
-    height_daemon = HeightDaemon("./stereo_config.json")
+    stereo_config_file = sys.argv[1]
+    height_daemon = HeightDaemon(stereo_config_file)
     height_daemon.set_on_person_detected(person_detected)
     height_daemon.set_on_person_leaves(person_leaves)
     height_daemon.run()
