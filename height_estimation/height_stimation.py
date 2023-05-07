@@ -137,11 +137,12 @@ class HeightDaemon:
         self.features_left = FeaturesExtractor()
         self.features_right = FeaturesExtractor()
         self.movement_analizer = MoventAnalizer(2)
+        self.keep_loop = True
 
     def run(self):
         self.cams.start()
         self.movement_analizer.start()
-        while self.cams.isOpened():
+        while self.cams.isOpened() and self.keep_loop:
             frame_left, frame_right = self.cams.get_frames()
             succes_left, frame_left = frame_left
             succes_right, frame_right = frame_right
@@ -178,11 +179,14 @@ class HeightDaemon:
                 frame_left, frame_right, height, depth)
             if terminate:
                 break
-        self.cams.close()
         self.movement_analizer.close()
+        self.cams.close()
 
     def start(self):
         threading.Thread(target=self.start).start()
+    def close(self):
+        self.keep_loop = False
+
 
     def set_on_person_detected(self, callback):
         self.movement_analizer.on_person_detected = callback
