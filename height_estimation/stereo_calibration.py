@@ -2,11 +2,12 @@ import numpy as np
 import cv2
 import glob
 import json
+import sys
 
 from dataclasses import dataclass
 #  from traits.api import Tuple
 from typing import Tuple
-from calibration import getStereoRectifier
+from .calibration import getStereoRectifier
 
 
 def has_resolution(img, res):
@@ -172,17 +173,22 @@ def stereoCalibration(objpoints: np.array,
 
 
 if __name__ == "__main__":
-    imagesPathLeft = sorted(glob.glob('images/imageL*.png'))
-    imagesPathRight = sorted(glob.glob('images/imageR*.png'))
+
+    images_path = sys.argv[1]
+    streo_map_file = sys.argv[2]
+    streo_config_file = sys.argv[3]
+
+    imagesPathLeft = sorted(glob.glob(f'{images_path}/imageL*.png'))
+    imagesPathRight = sorted(glob.glob(f'{images_path}/imageR*.png'))
     imagesLeft = list(map(cv2.imread, imagesPathLeft))
     imagesRight = list(map(cv2.imread, imagesPathRight))
 
     calib_result = cameraCalibrationFromImages((8, 6), (640, 480),
                                                imagesLeft, imagesRight)
-    stereoCalibration(*calib_result, "stereoMap.xml")
+    stereoCalibration(*calib_result, streo_map_file)
 
     # find camera matrix of rectified images
-    rectifier = getStereoRectifier("stereoMap.xml")
+    rectifier = getStereoRectifier(streo_map_file)
 
     rectifiedL, rectifiedR = rectifyImages(rectifier, imagesLeft, imagesRight)
     calib_rectified_result = cameraCalibrationFromImages((8, 6), (640, 480),
@@ -195,5 +201,5 @@ if __name__ == "__main__":
     print(calib_rectified_result[1].newCameraMatrix)
     print(calib_rectified_result[2].cameraMatrix)
     print(calib_rectified_result[2].newCameraMatrix)
-    saveCameraParameters("./stereo_config.json",
+    saveCameraParameters(streo_config_file,
                          calib_result[1], calib_result[2])
