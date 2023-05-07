@@ -115,12 +115,13 @@ class MoventAnalizer:
                 sleep(self.sleep_time)
 
         self.thread = threading.Thread(target=movement_analizer)
-        self.thread.start()
 
     def apped_data(self, data_entry):
         self.data.append(data_entry)
     def close(self):
         self.keep_loop = False
+    def start(self):
+        self.thread.start()
 
 
 class HeightDaemon:
@@ -131,7 +132,6 @@ class HeightDaemon:
                             self.stereo_config.right_camera.fpx)
         self.cams = startCameraArray(self.stereo_config.left_camera,
                                      self.stereo_config.right_camera)
-        self.cams.start()
 
         self.rectify = getStereoRectifier(self.stereo_config.stereo_map_file)
         self.features_left = FeaturesExtractor()
@@ -139,6 +139,8 @@ class HeightDaemon:
         self.movement_analizer = MoventAnalizer(2)
 
     def run(self):
+        self.cams.start()
+        self.movement_analizer.start()
         while self.cams.isOpened():
             frame_left, frame_right = self.cams.get_frames()
             succes_left, frame_left = frame_left
