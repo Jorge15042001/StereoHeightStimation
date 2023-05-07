@@ -17,7 +17,7 @@ def has_resolution(img, res):
 
 def findChessboard(img, chessboardSize, termination_criteria):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    ret, corners = cv2.findChessboardCornersSB(
+    ret, corners = cv2.findChessboardCorners(
         gray, chessboardSize, cv2.CALIB_CB_EXHAUSTIVE)
     if not ret:
         return (False, None)
@@ -180,6 +180,7 @@ if __name__ == "__main__":
 
     imagesPathLeft = sorted(glob.glob(f'{images_path}/imageL*.png'))
     imagesPathRight = sorted(glob.glob(f'{images_path}/imageR*.png'))
+
     imagesLeft = list(map(cv2.imread, imagesPathLeft))
     imagesRight = list(map(cv2.imread, imagesPathRight))
 
