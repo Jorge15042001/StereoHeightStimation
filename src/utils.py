@@ -21,6 +21,7 @@ class StereoConfig:
     cam_separation: float
     stereo_map_file: str
     depth_to_pixel_size: float
+    show_images: bool
 
 
 def startCameraArray(left_camera: CameraConfig,
@@ -35,6 +36,7 @@ def loadStereoCameraConfig(json_fname: str) -> StereoConfig:
     sep = stero_config["separation"]
     stereo_map_file = stero_config["stereo_map_file"]
     depth_to_pixel_size = stero_config["depth_to_pixel_size"]
+    show_images = stero_config["show_images"]
 
     left_camera = CameraConfig(
         stero_config["left_camera"]["idx"],
@@ -49,4 +51,5 @@ def loadStereoCameraConfig(json_fname: str) -> StereoConfig:
     )
 
     return StereoConfig(left_camera, right_camera, sep,
-                        stereo_map_file, depth_to_pixel_size)
+                        stereo_map_file, depth_to_pixel_size,
+                        show_images)
