@@ -124,7 +124,7 @@ class MoventAnalizer:
 
 class HeightDaemon:
     def __init__(self, config_file):
-        self.stereo_config = loadStereoCameraConfig("./stereo_config.json")
+        self.stereo_config = loadStereoCameraConfig(config_file)
         #  cam_center_left, cam_center_right = cam_centers
         self.f_length = min(self.stereo_config.left_camera.fpx,
                             self.stereo_config.right_camera.fpx)
@@ -132,7 +132,7 @@ class HeightDaemon:
                                      self.stereo_config.right_camera)
         self.cams.start()
 
-        self.rectify = getStereoRectifier("./stereoMap.xml")
+        self.rectify = getStereoRectifier(self.stereo_config.stereo_map_file)
         self.features_left = FeaturesExtractor()
         self.features_right = FeaturesExtractor()
         self.movement_analizer = MoventAnalizer(2)
