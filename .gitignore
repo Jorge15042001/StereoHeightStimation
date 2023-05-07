@@ -1,4 +1,5 @@
 body_proportions/
+__pycache__/
 images/
 stereoMap.xml
 stereo_config.json
