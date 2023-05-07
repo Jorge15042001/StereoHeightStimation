@@ -1,7 +1,7 @@
 import cv2
-from cameraArray import CamArray
+from .cameraArray import CamArray
 from datetime import datetime
-from utils import loadCamArrayFromJson
+from .utils import loadStereoCameraConfig, startCameraArray
 import sys
 
 #  images_dir = "./images"
@@ -58,7 +58,10 @@ if __name__ == "__main__":
     stereo_config_file = sys.argv[1]
     images_dir = sys.argv[2]
 
-    cams = loadCamArrayFromJson(stereo_config_file)
+    stereo_config = loadStereoCameraConfig(stereo_config_file)
+    #  cams = loadCamArrayFromJson(stereo_config_file)
+    cams = startCameraArray(stereo_config.left_camera,
+                            stereo_config.right_camera)
     cams.start()
     capture_images(cams, images_dir)
     cams.close()
