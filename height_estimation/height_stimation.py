@@ -199,54 +199,9 @@ def person_detected():
 def person_leaves():
     print("Person leaves")
 
+
 if __name__ == "__main__":
     height_daemon = HeightDaemon("./stereo_config.json")
     height_daemon.set_on_person_detected(person_detected)
     height_daemon.set_on_person_leaves(person_leaves)
     height_daemon.run()
-
-    #  stereo_config = loadStereoCameraConfig("./stereo_config.json")
-    #  #  cam_center_left, cam_center_right = cam_centers
-    #  f_length = min(stereo_config.left_camera.fpx,
-    #                 stereo_config.right_camera.fpx)
-    #  cams = startCameraArray(stereo_config.left_camera,
-    #                          stereo_config.right_camera)
-    #  cams.start()
-    #
-    #  rectify = getStereoRectifier("./stereoMap.xml")
-    #  features_left_extractor = FeaturesExtractor()
-    #  features_right_extractor = FeaturesExtractor()
-    #
-    #  while cams.isOpened():
-    #      frame_left, frame_right = cams.get_frames()
-    #      succes_left, frame_left = frame_left
-    #      succes_right, frame_right = frame_right
-    #
-    #      if not succes_right or not succes_left:
-    #          print("Ignoring empty camera frame.")
-    #          continue
-    #
-    #      frame_left, frame_right = rectify(frame_left, frame_right)
-    #
-    #      features_left = features_left_extractor.extract_keypts(frame_left)
-    #      features_right = features_right_extractor.extract_keypts(frame_right)
-    #
-    #      if not features_left[0] or not features_right[0]:
-    #          terminate = showHeighResult(frame_left, frame_right, None, None)
-    #          if terminate:
-    #              break
-    #          continue
-    #
-    #      depth = computeDepth(features_left[2], features_right[2],
-    #                           stereo_config.cam_separation, f_length)
-    #
-    #      px_size = stereo_config.depth_to_pixel_size * depth
-    #      #  height = computeHeigth(features_left[1], px_size)
-    #      height = computeHeigth2(
-    #          features_left[1], px_size, stereo_config.left_camera.center)
-    #
-    #      terminate = showHeighResult(frame_left, frame_right, height, depth)
-    #      if terminate:
-    #          break
-    #
-    #  cams.close()
