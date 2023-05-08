@@ -185,6 +185,7 @@ class HeightDaemon:
                 break
         self.movement_analizer.close()
         self.cams.close()
+        self.keep_loop = False
 
     def start(self):
         threading.Thread(target=self.run).start()
