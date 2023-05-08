@@ -85,7 +85,6 @@ class MoventAnalizer:
                 not_none_count = total_elements - none_count
 
                 if total_elements == 0:
-                    print("No data in movement_analizer")
                     sleep(self.sleep_time)
                     continue
 
