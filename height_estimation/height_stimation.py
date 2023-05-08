@@ -105,12 +105,13 @@ class MoventAnalizer:
                     sleep(self.sleep_time)
                     continue
 
-                data_not_none = list(filter(lambda x: x is not None, self.data))
+                data_not_none = list(
+                    filter(lambda x: x is not None, self.data))
                 data_min = min(data_not_none)
                 data_max = max(data_not_none)
-                if data_max-data_min < self.threashold and not self.person_detected :
+                if data_max-data_min < self.threashold and not self.person_detected:
                     self.person_detected = True
-                    self.on_person_detected()
+                    self.on_person_detected(self.height)
                 self.data = []
                 sleep(self.sleep_time)
 
@@ -187,9 +188,9 @@ class HeightDaemon:
 
     def start(self):
         threading.Thread(target=self.run).start()
+
     def close(self):
         self.keep_loop = False
-
 
     def set_on_person_detected(self, callback):
         self.movement_analizer.on_person_detected = callback
