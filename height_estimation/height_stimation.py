@@ -72,10 +72,11 @@ class MoventAnalizer:
         self.data = []
         self.threashold: float = 5
         self.sleep_time: float = once_every_seconds
-        self.on_person_detected = lambda: None
+        self.on_person_detected = lambda x: None
         self.on_person_leaves = lambda: None
         self.keep_loop = True
         self.person_detected = False
+        self.height = 0
 
         def movement_analizer():
             while self.keep_loop:
@@ -118,8 +119,10 @@ class MoventAnalizer:
 
     def apped_data(self, data_entry):
         self.data.append(data_entry)
+
     def close(self):
         self.keep_loop = False
+
     def start(self):
         self.thread.start()
 
@@ -175,6 +178,7 @@ class HeightDaemon:
             height = computeHeigth2(features_left[1], px_size,
                                     self.stereo_config.left_camera.center)
 
+            self.movement_analizer.height = height
             terminate = self.showHeighResult(
                 frame_left, frame_right, height, depth)
             if terminate:
@@ -199,8 +203,8 @@ class HeightDaemon:
             return showHeighResult(frame_left, frame_right, height, depth)
 
 
-def person_detected():
-    print("Person detected")
+def person_detected(height):
+    print("Person detected", height)
 
 
 def person_leaves():
