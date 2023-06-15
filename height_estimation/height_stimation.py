@@ -7,6 +7,7 @@ import threading
 from .featuresExtractor import FaceFeatures, FeaturesExtractor
 from .utils import startCameraArray, loadStereoCameraConfig, StereoConfig
 from time import sleep
+import time
 import sys
 
 mp_drawing = mp.solutions.drawing_utils
@@ -68,60 +69,65 @@ def showHeighResult(frame_left, frame_right, height, depth):
 
 
 class MoventAnalizer:
-    def __init__(self, once_every_seconds):
+    def __init__(self, buff_time):
         self.data = []
         self.threashold: float = 5
-        self.sleep_time: float = once_every_seconds
+        self.bufftime: float = buff_time
         self.on_person_detected = lambda x: None
         self.on_person_leaves = lambda: None
-        self.keep_loop = True
-        self.person_detected = False
-        self.height = 0
+        self.person_detected: bool = False
+        self.height: float = 0.
+        self.event: threading.Event = threading.Event()
+        self.keep_loop: bool = True
 
         def movement_analizer():
             while self.keep_loop:
-                total_elements = len(self.data)
-                none_count = self.data.count(None)
+                data = list(map(lambda x: x[0], self.data))
+                total_elements = len(data)
+                none_count = data.count(None)
                 not_none_count = total_elements - none_count
 
                 if total_elements == 0:
-                    sleep(self.sleep_time)
-                    continue
+                    pass
 
-                if total_elements < 30:
-                    sleep(self.sleep_time)
-                    continue
+                elif total_elements < 15:
+                    pass
 
-                if total_elements == none_count and self.person_detected:
+                elif total_elements == none_count and self.person_detected:
                     self.person_detected = False
                     print("No movement detected")
-                    self.data = []
                     self.on_person_leaves()
-                    sleep(self.sleep_time)
-                    continue
 
-                if not_none_count/total_elements < 0.9:
-                    self.data = []
-                    sleep(self.sleep_time)
-                    continue
+                elif not_none_count/total_elements < 0.8:
+                    pass
 
-                data_not_none = list(
-                    filter(lambda x: x is not None, self.data))
-                data_min = min(data_not_none)
-                data_max = max(data_not_none)
-                if data_max-data_min < self.threashold and not self.person_detected:
-                    self.person_detected = True
-                    self.on_person_detected(self.height)
-                self.data = []
-                sleep(self.sleep_time)
+                else:
+                    data_not_none = list(filter(lambda x: x is not None, data))
+                    data_min = min(data_not_none)
+                    data_max = max(data_not_none)
+
+                    if data_max-data_min < self.threashold and not self.person_detected:
+                        self.person_detected = True
+                        self.on_person_detected(self.height)
+
+                self.event.wait()
+                self.event.clear()
 
         self.thread = threading.Thread(target=movement_analizer)
 
-    def apped_data(self, data_entry):
-        self.data.append(data_entry)
+    def append_data(self, data_entry):
+
+        now: float = time.time()
+        self.data.append((data_entry, now))
+
+        # filter old data
+        self.data = list(
+            filter(lambda x: now - x[1] < self.bufftime, self.data))
+        self.event.set()
 
     def close(self):
         self.keep_loop = False
+        self.event.set()
 
     def start(self):
         self.thread.start()
@@ -160,7 +166,7 @@ class HeightDaemon:
             features_right = self.features_right.extract_keypts(frame_right)
 
             if not features_left[0] or not features_right[0]:
-                self.movement_analizer.apped_data(None)
+                self.movement_analizer.append_data(None)
 
                 terminate = self.showHeighResult(frame_left, frame_right,
                                                  None, None)
@@ -172,7 +178,7 @@ class HeightDaemon:
                                  self.stereo_config.cam_separation,
                                  self.f_length)
 
-            self.movement_analizer.apped_data(depth)
+            self.movement_analizer.append_data(depth)
             px_size = self.stereo_config.depth_to_pixel_size * depth
             #  height = computeHeigth(features_left[1], px_size)
             height = computeHeigth2(features_left[1], px_size,
