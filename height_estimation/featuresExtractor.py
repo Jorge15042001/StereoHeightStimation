@@ -17,12 +17,24 @@ class FaceFeatures:
     mouth: np.array
     nose: np.array
 
+    def normalize(self, width, height):
+        scale = np.array([width, height])
+        normalized = FaceFeatures(self.eye1/scale,
+                                  self.eye2/scale,
+                                  self.mouth/scale,
+                                  self.nose/scale)
+        return normalized
+
+    def __str__(self):
+        return f"{self.eye1};{self.eye2};{self.mouth};{self.nose}"
+
 
 class FeaturesExtractor:
-    def __init__(self):
+    def __init__(self, save_pred_to=None):
         #  self.pose = mp_pose.Pose(model_complexity=1,
         #                           min_detection_confidence=0.5,
         #                           min_tracking_confidence=0.5)
+        self.save_pred_to = save_pred_to
         self.face_mesh = mp_face_mesh.FaceMesh(
             max_num_faces=4,
             refine_landmarks=True,
@@ -84,8 +96,12 @@ class FeaturesExtractor:
         #      mp_pose.POSE_CONNECTIONS,
         #      landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style()
         #  )
-        mouth = np.mean([img_coords[9, :], img_coords[10, :]], axis=0)
+        mouth = np.mean([img_coords[13, :], img_coords[14, :]], axis=0)
+        mouth_rel = np.mean([rel_coords[13, :], rel_coords[14, :]], axis=0)
 
         features = FaceFeatures(
-            img_coords[33, :], img_coords[263, :], None, None)
-        return (True, features, img_coords, rel_coords)
+            img_coords[33, :], img_coords[263, :], mouth, img_coords[2, :])
+        features_rel = FaceFeatures(
+            rel_coords[33, :], rel_coords[263, :], mouth_rel, rel_coords[2, :])
+
+        return (True, features, img_coords, rel_coords, features_rel)

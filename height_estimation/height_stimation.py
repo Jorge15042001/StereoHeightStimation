@@ -5,7 +5,7 @@ from .triangulation import find_depth_from_disparities
 import mediapipe as mp
 import threading
 from .featuresExtractor import FaceFeatures, FeaturesExtractor
-from .utils import startCameraArray, loadStereoCameraConfig, StereoConfig
+from .utils import startCameraArray, loadStereoCameraConfig, StereoConfig, get_now_str
 from time import sleep
 import time
 import sys
@@ -140,7 +140,8 @@ class HeightDaemon:
         self.f_length = min(self.stereo_config.left_camera.fpx,
                             self.stereo_config.right_camera.fpx)
         self.cams = startCameraArray(self.stereo_config.left_camera,
-                                     self.stereo_config.right_camera)
+                                     self.stereo_config.right_camera,
+                                     self.stereo_config)
 
         self.rectify = getStereoRectifier(self.stereo_config.stereo_map_file)
         self.features_left = FeaturesExtractor()
@@ -148,10 +149,15 @@ class HeightDaemon:
         self.movement_analizer = MoventAnalizer(2)
         self.keep_loop = True
 
+        if self.stereo_config.save_predictions:
+            self.out_file = open(
+                self.stereo_config.save_predictions_file, "wa")
+
     def run(self):
         self.cams.start()
         self.movement_analizer.start()
         while self.cams.isOpened() and self.keep_loop:
+            now_str = get_now_str()
             frame_left, frame_right = self.cams.get_frames()
             succes_left, frame_left = frame_left
             succes_right, frame_right = frame_right
@@ -162,8 +168,17 @@ class HeightDaemon:
 
             frame_left, frame_right = self.rectify(frame_left, frame_right)
 
+            if self.stereo_config.save_rectified_images:
+                cv2.imwrite(
+                    f"{self.stereo_config.save_input_images_path}/{now_str}.left.rectified.png", frame_left)
+                cv2.imwrite(
+                    f"{self.stereo_config.save_input_images_path}/{now_str}.right.rectified.png", frame_right)
+
             features_left = self.features_left.extract_keypts(frame_left)
             features_right = self.features_right.extract_keypts(frame_right)
+
+            if self.stereo_config.save_predictions:
+                pass
 
             if not features_left[0] or not features_right[0]:
                 self.movement_analizer.append_data(None)
@@ -185,6 +200,10 @@ class HeightDaemon:
                                     self.stereo_config.left_camera.center)
 
             self.movement_analizer.height = height
+
+            if self.stereo_config.save_predictions:
+                self.out_file.write(f"{now_str},{features_left[4]},{features_right[4]},{depth},{height}\n")
+
             terminate = self.showHeighResult(
                 frame_left, frame_right, height, depth)
             if terminate:

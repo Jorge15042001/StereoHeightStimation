@@ -4,6 +4,7 @@ import cv2
 from time import sleep
 
 import threading
+from .utils import get_now_str
 
 
 class cameraThread:
@@ -36,9 +37,10 @@ class cameraThread:
 
 
 class CamArray:
-    def __init__(self, camidxs, fps=60):
+    def __init__(self, camidxs, fps=60, save_frames_to=None):
         self.cams = list(map(lambda x: cameraThread(x, fps), camidxs))
         self.fps = fps
+        self.save_frames_to = save_frames_to
 
     def start(self):
         for cam in self.cams:
@@ -52,7 +54,12 @@ class CamArray:
 
     def get_frames(self):
         while any(map(lambda cam: not cam.get_frame()[0], self.cams)): continue
-        return list(map(lambda cam: cam.get_frame(), self.cams))
+        frames = list(map(lambda cam: cam.get_frame(), self.cams))
+        if self.save_frames_to is not None:
+            now_str = get_now_str()
+            for idx, frame in enumerate(frames):
+                cv2.imwrite( f"{self.save_frames_to}/{now_str}.{self.cams[idx].cam_idx}.input.png", frame)
+        return frames
 
     def isOpened(self):
         return all(map(lambda cam: cam.cap.isOpened(), self.cams))
