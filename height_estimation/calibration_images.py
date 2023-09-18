@@ -9,10 +9,6 @@ import sys
 #      os.makedirs(images_dir)
 
 
-def flip_correction(img):
-    return img[::-1][:, ::-1]
-
-
 def save_images(images_dir, img1, img2):
     now = datetime.now()
     timestamp = now.strftime("%m.%d.%Y_%H:%M:%S.%f")
@@ -55,13 +51,13 @@ def capture_images(cams: CamArray, images_dir):
 
 if __name__ == "__main__":
 
+    # TODO: handle command line parameters correctly
     stereo_config_file = sys.argv[1]
     images_dir = sys.argv[2]
 
     stereo_config = loadStereoCameraConfig(stereo_config_file)
     #  cams = loadCamArrayFromJson(stereo_config_file)
-    cams = startCameraArray(stereo_config.left_camera,
-                            stereo_config.right_camera)
+    cams = startCameraArray(stereo_config)
     cams.start()
     capture_images(cams, images_dir)
     cams.close()
