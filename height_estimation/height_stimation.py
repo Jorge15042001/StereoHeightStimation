@@ -92,6 +92,9 @@ class MoventAnalizer:
                 elif total_elements < 15:
                     pass
 
+                elif not_none_count == 1:
+                    self.on_person_seen()
+
                 elif total_elements == none_count and self.person_detected:
                     self.person_detected = False
                     print("No movement detected")
