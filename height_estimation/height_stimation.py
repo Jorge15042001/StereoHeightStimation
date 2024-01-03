@@ -75,6 +75,7 @@ class MoventAnalizer:
         self.on_person_detected = lambda x: None
         self.on_person_leaves = lambda: None
         self.person_detected: bool = False
+        self.person_seen: bool = False
         self.height: float = 0.
         self.event: threading.Event = threading.Event()
         self.keep_loop: bool = True
@@ -92,11 +93,12 @@ class MoventAnalizer:
                 elif total_elements < 15:
                     pass
 
-                elif not_none_count == 1:
+                elif not_none_count == 1 and not self.person_seen:
                     self.on_person_seen(self.height)
 
                 elif total_elements == none_count and self.person_detected:
                     self.person_detected = False
+                    self.person_seen = False
                     print("No movement detected")
                     self.on_person_leaves()
 
