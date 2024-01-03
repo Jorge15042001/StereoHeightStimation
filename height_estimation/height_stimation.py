@@ -94,6 +94,7 @@ class MoventAnalizer:
                     pass
 
                 elif not_none_count == 1 and not self.person_seen:
+                    self.person_seen = True
                     self.on_person_seen(self.height)
 
                 elif total_elements == none_count and self.person_detected:
