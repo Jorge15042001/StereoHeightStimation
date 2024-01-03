@@ -98,7 +98,6 @@ class MoventAnalizer:
                     self.on_person_seen(self.height)
 
                 elif total_elements == none_count and self.person_seen:
-                    #  self.person_detected = False
                     self.person_seen = False
 
                 elif total_elements == none_count and self.person_detected:
@@ -107,7 +106,7 @@ class MoventAnalizer:
                     print("No movement detected")
                     self.on_person_leaves()
 
-                elif not_none_count/total_elements < 0.8:
+                elif not_none_count/total_elements < 0.5:
                     pass
 
                 else:
