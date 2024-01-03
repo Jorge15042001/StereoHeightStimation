@@ -71,6 +71,7 @@ class MoventAnalizer:
         self.data = []
         self.threashold: float = 5
         self.bufftime: float = buff_time
+        self.on_person_seen = lambda x: None
         self.on_person_detected = lambda x: None
         self.on_person_leaves = lambda: None
         self.person_detected: bool = False
@@ -138,7 +139,8 @@ class HeightDaemon:
         self.f_length = min(self.stereo_config.left_camera.fpx,
                             self.stereo_config.right_camera.fpx)
         self.cams = startCameraArray(self.stereo_config)
-        self.cams.rectifier = getStereoRectifier(self.stereo_config.stereo_map_file)
+        self.cams.rectifier = getStereoRectifier(
+            self.stereo_config.stereo_map_file)
 
         #  self.rectify = getStereoRectifier(self.stereo_config.stereo_map_file)
         self.features_left = FeaturesExtractor()
@@ -196,6 +198,9 @@ class HeightDaemon:
     def close(self):
         self.keep_loop = False
 
+    def set_on_person_seen(self, callback):
+        self.movement_analizer.on_person_detected = callback
+
     def set_on_person_detected(self, callback):
         self.movement_analizer.on_person_detected = callback
 
@@ -205,6 +210,10 @@ class HeightDaemon:
     def showHeighResult(self, frame_left, frame_right, height, depth):
         if self.stereo_config.show_images:
             return showHeighResult(frame_left, frame_right, height, depth)
+
+
+def person_seen(height):
+    print("Person seen", height)
 
 
 def person_detected(height):
@@ -218,6 +227,7 @@ def person_leaves():
 if __name__ == "__main__":
     stereo_config_file = sys.argv[1]
     height_daemon = HeightDaemon(stereo_config_file)
+    height_daemon.set_on_person_seen(person_detected)
     height_daemon.set_on_person_detected(person_detected)
     height_daemon.set_on_person_leaves(person_leaves)
     height_daemon.run()
