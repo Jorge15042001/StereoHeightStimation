@@ -202,7 +202,7 @@ class HeightDaemon:
         self.keep_loop = False
 
     def set_on_person_seen(self, callback):
-        self.movement_analizer.on_person_detected = callback
+        self.movement_analizer.on_person_seen = callback
 
     def set_on_person_detected(self, callback):
         self.movement_analizer.on_person_detected = callback
@@ -230,7 +230,7 @@ def person_leaves():
 if __name__ == "__main__":
     stereo_config_file = sys.argv[1]
     height_daemon = HeightDaemon(stereo_config_file)
-    height_daemon.set_on_person_seen(person_detected)
+    height_daemon.set_on_person_seen(person_seen)
     height_daemon.set_on_person_detected(person_detected)
     height_daemon.set_on_person_leaves(person_leaves)
     height_daemon.run()
