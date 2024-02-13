@@ -6,8 +6,9 @@ import mediapipe as mp
 import threading
 from .featuresExtractor import FaceFeatures, FeaturesExtractor
 from .utils import startCameraArray, loadStereoCameraConfig, StereoConfig
-from .cameraArray import get_now_str
+from .cameraArray import get_now_str, CamArray
 from time import sleep
+from typing import Callable
 import time
 import sys
 
@@ -99,7 +100,30 @@ def showHeighResult(frame_left, frame_right, height, depth):
     return False
 
 
+# TODO: refactor name MovementAnalyzer
 class MoventAnalizer:
+    """MovementAnalizer handles detections from generated keypoints
+    TODO: this class should work with 3d cooridinates not 1D (just height)
+
+    Args:
+        buff_time (float): after each iteration any data older that buff_time will be remove
+
+    Attributes:
+        data (list[flaot]): list of coordinates to analize movement
+        threshold (float): maximum movement allowed to be consider same person
+        bufftime (float): any elements older than bufftime will be remove from data
+        on_person_seen (callable[[float], None]): callback used when a person is seen (been detected in a single frames counts as seen)
+        on_person_detected(callable[[float], None]): callback used when a person is detected (to be detected a person should remain still in front of the camera for a while)
+        on_person_leaves(callable[[None], None]): callback used when a person goes leaves field of view of the camera
+        person_detected (bool): whether or not a person has been detected
+        person_seen (bool): whether or not a person has been seen
+        height (float): current height to be set
+        event (threading.Event): event used for synchronization between threads
+        keep_loop (bool): controls the main loop of the analyzer
+        thread (threading.Thread): the main thread of the analyzer
+
+    """
+
     def __init__(self, buff_time):
         self.data = []
         self.threashold: float = 5
@@ -113,6 +137,7 @@ class MoventAnalizer:
         self.event: threading.Event = threading.Event()
         self.keep_loop: bool = True
 
+        # main loop
         def movement_analizer():
             while self.keep_loop:
                 data = list(map(lambda x: x[0], self.data))
@@ -157,6 +182,7 @@ class MoventAnalizer:
         self.thread = threading.Thread(target=movement_analizer)
 
     def append_data(self, data_entry):
+        """Add data point the movement analized, removes any data point older than bufftime"""
 
         now: float = time.time()
         self.data.append((data_entry, now))
@@ -167,14 +193,31 @@ class MoventAnalizer:
         self.event.set()
 
     def close(self):
+        """Stop main loop"""
         self.keep_loop = False
         self.event.set()
 
     def start(self):
+        """Start main loop"""
         self.thread.start()
 
 
 class HeightDaemon:
+    """This class controls integrates face mesh detection, depth estimation, height estimation and movement analyzer in a single api
+    Args:
+        config_file (str): json configuration filename with calibration data
+
+    Attributes:
+        stereo_config (StereoConfig): filename of the json config file
+        f_length (float): focal length of the stereo vision system
+        cams (CamArray): StereoVision capture device
+        features_left (FeaturesExtractor): left features extractor
+        features_right (FeaturesExtractor): right features extractor
+        movement_analizer (MoventAnalizer): 
+        keep_loop (bool): controls main loop execution
+
+    """
+
     def __init__(self, config_file):
         self.stereo_config = loadStereoCameraConfig(config_file)
         #  cam_center_left, cam_center_right = cam_centers
@@ -191,6 +234,7 @@ class HeightDaemon:
         self.keep_loop = True
 
     def run(self):
+        """Main thread for height estimation"""
         self.cams.start()
         self.movement_analizer.start()
         while self.cams.isOpened() and self.keep_loop:
@@ -235,21 +279,27 @@ class HeightDaemon:
         self.keep_loop = False
 
     def start(self):
+        """Start main loop in a different thread"""
         threading.Thread(target=self.run).start()
 
     def close(self):
+        """Stop main loop"""
         self.keep_loop = False
 
     def set_on_person_seen(self, callback):
+        """Set person seen callback"""
         self.movement_analizer.on_person_seen = callback
 
     def set_on_person_detected(self, callback):
+        """Set person detected callback"""
         self.movement_analizer.on_person_detected = callback
 
     def set_on_person_leaves(self, callback):
+        """Set person leaves callback"""
         self.movement_analizer.on_person_leaves = callback
 
     def showHeighResult(self, frame_left, frame_right, height, depth):
+        """Show the results of height estimation in window"""
         if self.stereo_config.show_images:
             return showHeighResult(frame_left, frame_right, height, depth)
 
