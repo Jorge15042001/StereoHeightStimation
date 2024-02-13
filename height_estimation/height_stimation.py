@@ -11,17 +11,35 @@ from time import sleep
 import time
 import sys
 
-mp_drawing = mp.solutions.drawing_utils
-mp_drawing_styles = mp.solutions.drawing_styles
-mp_pose = mp.solutions.pose
+#  mp_drawing = mp.solutions.drawing_utils
+#  mp_drawing_styles = mp.solutions.drawing_styles
+#  mp_pose = mp.solutions.pose
 
 
 def computeDepth(keypoinsL, keypoinsR, cams_sep, f_length):
+    """Compute depth from keypoints
+
+    Parameteres:
+        keypointsL (np.ndarray): nx2 numpy array containing keypoints coordinates as viewed from left camera
+        keypointsR (np.ndarray): nx2 numpy array containing keypoints coordinates as viewed from right camera
+        cams_sep (float): horizontal distance between camera
+        f_length (float): focal distance in px units calculated during calibration
+    Returns:
+        float: depth
+    """
     return find_depth_from_disparities(keypoinsL[:, 0], keypoinsR[:, 0],
                                        cams_sep, f_length)
 
 
 def computeHeigth(features: FaceFeatures, pixel_size: float):
+    """Compute person heigth from body proportions
+    Parameters:
+        features (FaceFeatures): face features
+        pixel_size: pixel_size at given depth in mm
+    Returns:
+        float: estimated height
+
+    """
     mid_eye = np.mean((features.eye1, features.eye2), axis=0)
     mouth_eye = ((mid_eye[0]-features.mouth[0])**2 +
                  (mid_eye[1]-features.mouth[1])**2) ** 0.5
@@ -31,6 +49,14 @@ def computeHeigth(features: FaceFeatures, pixel_size: float):
 
 
 def computeHeigth2(features: FaceFeatures, pixel_size: float, cam_center):
+    """Compute person heigth realtive to the camera
+    Parameters:
+        features (FaceFeatures): face features
+        pixel_size: pixel_size at given depth in mm
+    Returns:
+        float: estimated height
+
+    """
     mid_eye_y = np.mean((features.eye1, features.eye2), axis=0)[1]
     cam_center_y = cam_center[1]
 
@@ -41,6 +67,13 @@ def computeHeigth2(features: FaceFeatures, pixel_size: float, cam_center):
 
 
 def showHeighResult(frame_left, frame_right, height, depth):
+    """Show height result in screnn
+    Parameters:
+        frame_left (np.ndarray): left frame
+        frame_right (np.ndarray): right frame
+        height (float|None): estimated height, if None it's assumed it was not possible to track and/or detect any person in the images
+        depth (float): estimated depth
+    """
     success_height = height is not None
 
     if success_height:

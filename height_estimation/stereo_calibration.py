@@ -12,11 +12,31 @@ from .utils import loadStereoCameraConfig
 
 
 def has_resolution(img, res):
+    """Checks if an image have a given resolution
+
+    Parameters:
+        img (np.ndarray): image
+        res (tuple[int,int]): resolution
+
+    Returns:
+        bool: true if img's resolution is res
+    """
     img_h, img_w, _ = img.shape
     return res[0] == img_w and res[1] == img_h
 
 
 def findChessboard(img, chessboardSize, termination_criteria, show=False):
+    """Get the coordinates of a chessboard calibration pattern
+
+    Parameters:
+        img (np.ndarray): chessboard calibration pattern image
+        chessboardSize (type[int,int]): (cols, rows) of the chessboard calbration pattern
+        termination_criteria ( ): opencv findChessBoardCorners termination criteria
+        show (bool): if true the found corners will be shown in a window, the window will hold excetution  for 1 seconds or until any key is pressed
+    Returns:
+        bool: whether or not a pattern was found in the image
+        corners: list of cordinates found
+    """
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     ret, corners = cv2.findChessboardCorners(
         gray, chessboardSize, cv2.CALIB_CB_EXHAUSTIVE)
@@ -34,6 +54,14 @@ def findChessboard(img, chessboardSize, termination_criteria, show=False):
 
 
 def createObjp(chessboardSize):
+    """Create matrix with indeces for chessboard coordinates as requiered by opencv
+
+    Parameters:
+        chessboardSize (tuple[int,int]): (cols, rows) of the chessboard calibration pattern
+
+    Returns:
+        np.ndarray: index matrix
+    """
     objp = np.zeros((chessboardSize[0] * chessboardSize[1], 3), np.float32)
     objp[:, :2] = np.mgrid[0:chessboardSize[0],
                            0:chessboardSize[1]].T.reshape(-1, 2)
@@ -41,6 +69,20 @@ def createObjp(chessboardSize):
 
 
 def extractChessboardCoordinates(chessboardSize, frameRes, imgsL, imgsR):
+    """Get the chessboard coordinates from a list of left and right images
+
+    Parameters:
+        chessboardSize (tuple[int,int]): (cols, rows) of the calibration pattern used
+        frameRes (tuple[int,int]): (height, width) of the images used for calibration
+        imgsL (list[np.ndarray]): list of images of the calibration pattern captured from the left camera
+        imgsR (list[np.ndarray]): list of images of the calibration pattern captured from the right camera
+
+    Returns:
+        list[np.ndarray]: list of object points as required by opencv
+        list[np.ndarray]: list of corners found in the left images
+        list[np.ndarray]: list of corners found in the right images
+
+    """
     termination_criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER,
                             30, 0.001)
 
@@ -76,6 +118,14 @@ def extractChessboardCoordinates(chessboardSize, frameRes, imgsL, imgsR):
 
 
 def cameraCalibration(objpoints, imgpoints, frameRes):
+    """Perform individual camera calibration
+    Parameters:
+        objpoints(list[np.ndarray]): list of index matrices as required by opencv
+        imgpoints(list[np.ndarray]): list of coordinates found
+    Returns:
+        CalibrationResult: calibration output
+
+    """
     _, cameraMatrix, dist, _, _ = cv2.calibrateCamera(objpoints, imgpoints,
                                                       frameRes, None, None)
     newCameraMatrix, _ = cv2.getOptimalNewCameraMatrix(cameraMatrix, dist,
@@ -86,14 +136,21 @@ def cameraCalibration(objpoints, imgpoints, frameRes):
 @dataclass
 class CalibrationResult:
     frameSize: Tuple[int, int]
-    img_points: np.array
-    cameraMatrix: np.array
-    newCameraMatrix: np.array
-    distMatrix: np.array
-    #  roi: np.array
+    img_points: np.ndarray
+    cameraMatrix: np.ndarray
+    newCameraMatrix: np.ndarray
+    distMatrix: np.ndarray
 
 
 def cameraCalibrationFromImages(cb_shape, frameRes, imagesLeft, imagesRight):
+    """Perform initial camera calibration
+
+    Parameters:
+        cb_shape (tuple[int,int]): (cols, rows) of the calibration pattern
+        frameRes (tuple[int,int]): (height, width) of the calibration images
+        imgsL (list[np.ndarray]): list of images of the calibration pattern captured from the left camera
+        imgsR (list[np.ndarray]): list of images of the calibration pattern captured from the right camera
+    """
     objpoints, imgpointsL, imgpointsR = extractChessboardCoordinates(
         cb_shape, frameRes, imagesLeft, imagesRight)
 
@@ -105,6 +162,13 @@ def cameraCalibrationFromImages(cb_shape, frameRes, imagesLeft, imagesRight):
 
 def saveCameraParameters(filename: str, calib_left: CalibrationResult,
                          calib_right: CalibrationResult):
+    """Save camara parameters in json file
+
+    Parameters:
+        filename (str): json filename
+        calib_left (CalibrationResult): left calibration result
+        calib_right (CalibrationResult): right calibration result
+    """
     json_file = open(filename, "r")
     config = json.load(json_file)
     json_file.close()
@@ -123,6 +187,17 @@ def saveCameraParameters(filename: str, calib_left: CalibrationResult,
 
 
 def rectifyImages(rectifier, imgsL, imgsR):
+    """Recrify frames list of images
+
+    Parameters:
+        rectifier (): function that returns a rectified stereo pair given a unrectified pair
+        imgsL (list[np.ndarray]): list of images of the calibration pattern captured from the left camera
+        imgsR (list[np.ndarray]): list of images of the calibration pattern captured from the right camera
+
+    Returns:
+        list[np.ndarray]: left images rectified
+        list[np.ndarray]: right images rectified
+    """
     imgsL = []
     imgsR = []
     for imgL, imgR in zip(imagesLeft, imagesRight):
@@ -136,6 +211,14 @@ def stereoCalibration(objpoints: np.array,
                       calib_left: CalibrationResult,
                       calib_rigth: CalibrationResult,
                       calib_file: str):
+    """Perform stereo calibration
+    Parameters:
+        objpoints(list[np.ndarray]): list of index matrices as required by opencv
+        calib_left (CalibrationResult): left calibration result
+        calib_right (CalibrationResult): right calibration result
+        calib_file (str): stereo map file
+
+    """
 
     flags = 0
     flags |= cv2.CALIB_FIX_INTRINSIC
@@ -178,6 +261,9 @@ def stereoCalibration(objpoints: np.array,
 
 
 if __name__ == "__main__":
+    """
+    Main calibration pipeline
+    """
 
     images_path = sys.argv[1]
     streo_map_file = sys.argv[2]
@@ -200,10 +286,10 @@ if __name__ == "__main__":
     print(calib_result[2].newCameraMatrix)
 
     # find camera matrix of rectified images
+    # TODO: maybe this is not needed
     rectifier = getStereoRectifier(streo_map_file)
 
     rectifiedL, rectifiedR = rectifyImages(rectifier, imagesLeft, imagesRight)
-
 
     calib_rectified_result = cameraCalibrationFromImages((8, 6), (640, 480),
                                                          rectifiedL, rectifiedR)

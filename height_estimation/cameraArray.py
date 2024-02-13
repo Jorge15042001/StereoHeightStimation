@@ -10,6 +10,8 @@ import numpy as np
 
 
 def get_now_str():
+    """Returns timestamp string
+    """
     return datetime.utcnow().strftime('%Y-%m-%d__%H:%M:%S.%f')
 
 
@@ -52,6 +54,7 @@ class cameraThread:
             # Main thread
             while self.cap.isOpened() and not self.closed:
                 # read frames faster than the camera's fsp
+                # TODO: maybe it is not need
                 sleep(1/(fps*3))
                 frame = self.cap.read()
                 self.frame = frame
@@ -158,7 +161,6 @@ class CamArray:
             for (_, frame), writer in zip(frames, self.video_writers_rectified):
                 writer.write(frame)
         return ((True, frame1), (True, frame2))
-
 
     def isOpened(self):
         """ Check if the camera array is opened"""
