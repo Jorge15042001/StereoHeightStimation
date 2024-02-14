@@ -7,8 +7,10 @@ import sys
 from dataclasses import dataclass
 #  from traits.api import Tuple
 from typing import Tuple
+
+from .cameraArray import StereoConfig
 from .calibration import getStereoRectifier
-from .utils import loadStereoCameraConfig
+from .utils import loadStereoCameraConfig, is_binocular_cam
 
 
 def has_resolution(img, res):
@@ -147,7 +149,7 @@ def cameraCalibrationFromImages(cb_shape, frameRes, imagesLeft, imagesRight):
 
     Parameters:
         cb_shape (tuple[int,int]): (cols, rows) of the calibration pattern
-        frameRes (tuple[int,int]): (height, width) of the calibration images
+        frameRes (tuple[int,int]): (width, height) of the calibration images
         imgsL (list[np.ndarray]): list of images of the calibration pattern captured from the left camera
         imgsR (list[np.ndarray]): list of images of the calibration pattern captured from the right camera
     """
@@ -269,7 +271,7 @@ if __name__ == "__main__":
     streo_map_file = sys.argv[2]
     streo_config_file = sys.argv[3]
 
-    stero_config = loadStereoCameraConfig(streo_config_file)
+    stero_config: StereoConfig = loadStereoCameraConfig(streo_config_file)
 
     imagesPathLeft = sorted(glob.glob(f'{images_path}/imageL*.png'))
     imagesPathRight = sorted(glob.glob(f'{images_path}/imageR*.png'))
@@ -277,8 +279,14 @@ if __name__ == "__main__":
     imagesLeft = list(map(cv2.imread, imagesPathLeft))
     imagesRight = list(map(cv2.imread, imagesPathRight))
 
-    calib_result = cameraCalibrationFromImages((8, 6), stero_config.resolution,
-                                               imagesLeft, imagesRight)
+    img_resolution = stero_config.left_camera.resolution
+    if is_binocular_cam(stero_config):
+        img_resolution = (stero_config.left_camera.resolution[0]//2,
+                          stero_config.left_camera.resolution[1])
+
+    calib_result = cameraCalibrationFromImages(
+        (8, 6), img_resolution, imagesLeft, imagesRight)
+
     stereoCalibration(*calib_result, streo_map_file)
     print(calib_result[1].cameraMatrix)
     print(calib_result[1].newCameraMatrix)
@@ -291,8 +299,9 @@ if __name__ == "__main__":
 
     rectifiedL, rectifiedR = rectifyImages(rectifier, imagesLeft, imagesRight)
 
-    calib_rectified_result = cameraCalibrationFromImages((8, 6), (640, 480),
-                                                         rectifiedL, rectifiedR)
+    print(img_resolution)
+    calib_rectified_result = cameraCalibrationFromImages(
+        (8, 6), img_resolution, rectifiedL, rectifiedR)
     print(calib_rectified_result[1].cameraMatrix)
     print(calib_rectified_result[1].newCameraMatrix)
     print(calib_rectified_result[2].cameraMatrix)

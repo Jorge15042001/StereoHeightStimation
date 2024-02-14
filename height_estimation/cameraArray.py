@@ -1,5 +1,7 @@
 
 # import the opencv library
+from dataclasses import dataclass
+
 import cv2
 from time import sleep
 from datetime import datetime
@@ -7,6 +9,30 @@ from typing import Callable, Tuple
 
 import threading
 import numpy as np
+
+
+@dataclass
+class CameraConfig:
+    idx: int
+    fpx: float
+    center: tuple[int, int]
+    resolution: tuple[int, int]
+    fps: float
+
+
+@dataclass
+class StereoConfig:
+    left_camera: CameraConfig
+    right_camera: CameraConfig
+
+    cam_separation: float
+    stereo_map_file: str
+    depth_to_pixel_size: float
+    show_images: bool
+
+    save_images: bool
+
+    save_path: str
 
 
 def get_now_str():
@@ -82,9 +108,7 @@ class CamArray:
     Handles access to a stereo imaging system
 
     Args:
-        camidxs (list[int]): camera descriptors
-        fps (float): frames per second
-        reslution (tuple[int, int]): camera capture resolution
+        camConfigs (list[CameraConfig]): camera configs
         save_frames_to (str | None): path to folder where to save the frames, if None then no fames are saved
         rectifier:  Callable[[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray]] function that rectifies the stereo image pair
 
@@ -96,20 +120,30 @@ class CamArray:
         video_writters (list[cv2.VideoWriter_fourcc] | None): frames writers for capture frames
         video_writters_rectified (list[cv2.VideoWriter_fourcc] | None): frames writers for rectified frames
         rectifier (Callable[[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray]]): function that rectifies the stereo image pair
+        is_binocular_cam (bool): whether it is a single camera with 2 lenses or 2 separate cameras
     """
 
     def __init__(self,
-                 camidxs: list[int],
-                 fps: float = 60,
+                 camConfigs: list[CameraConfig],
                  save_frames_to: str | None = None,
                  rectifier: Callable[[np.ndarray, np.ndarray],
                                      Tuple[np.ndarray, np.ndarray]] =
-                 lambda x, y: (x, y),
-                 resolution: Tuple[int, int] = (640, 480)):
+                 lambda leftImg, rigthImg: (leftImg, rigthImg)):
 
-        assert len(camidxs) == 2, "Only 2 camera array suported"
-        self.cams: list[cameraThread] = [cameraThread(x, fps) for x in camidxs]
-        self.fps: float = fps
+        assert len(camConfigs) == 2, "Only 2 camera array suported"
+        self.is_binocular_cam = camConfigs[0].idx == camConfigs[1].idx
+
+        if not self.is_binocular_cam:
+            self.cams: list[cameraThread] = [
+                cameraThread(camConfig.idx, camConfig.fps,
+                             camConfig.resolution)
+                for camConfig in camConfigs]
+        else:
+            self.cams: list[cameraThread] = [
+                cameraThread(camConfigs[0].idx, camConfigs[0].fps,
+                             camConfigs[0].resolution)]
+
+        self.fps: float = min(camConfigs[0].fps, camConfigs[1].fps)
         self.save_frames_to: str | None = save_frames_to
 
         self.video_writers: list[cv2.VideoWriterr_fourcc] | None = None
@@ -120,12 +154,12 @@ class CamArray:
             now_str = get_now_str()
 
             self.video_writers = [cv2.VideoWriter(
-                f"{save_frames_to}/{now_str}_{cam_id}.avi",
-                fourcc, fps, resolution) for cam_id in camidxs]
+                f"{save_frames_to}/{now_str}_{cam_config.idx}.avi",
+                fourcc, cam_config.fps, cam_config.resolution) for cam_config in camConfigs]
 
             self.video_writers_rectified = [cv2.VideoWriter(
-                f"{save_frames_to}/{now_str}_{cam_id}_rectified.avi",
-                fourcc, fps, resolution) for cam_id in camidxs]
+                f"{save_frames_to}/{now_str}_{cam_config.idx}_rectified.avi",
+                fourcc, cam_config.fps, cam_config.resolution) for cam_config in camConfigs]
 
         self.rectifier: Callable[[np.ndarray, np.ndarray],
                                  Tuple[np.ndarray, np.ndarray]] = rectifier
@@ -146,8 +180,14 @@ class CamArray:
     def get_frames(self) -> list[np.ndarray[np.uint8]]:
         """ Get the latests frame from each camera in the array"""
         # wait for all the cameras to have atleast one frame available
+        # TODO: use proper synchronization techniques
         while any(map(lambda cam: not cam.get_frame()[0], self.cams)): continue
+
         frames = [cam.get_frame() for cam in self.cams]
+        if self.is_binocular_cam:
+            _, w, _ = frames[0][1].shape
+            frames = [(True, frames[0][1][:, :w//2, :]),
+                      (True, frames[0][1][:, w//2:, :])]
         #  frames = list(map(lambda cam: cam.get_frame(), self.cams))
         # record the frames into a video
         if self.video_writers is not None:

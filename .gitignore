@@ -3,3 +3,4 @@ __pycache__/
 images/
 stereoMap.xml
 stereo_config.json
+stereo_config/
