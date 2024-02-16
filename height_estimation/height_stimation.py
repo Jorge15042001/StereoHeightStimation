@@ -75,6 +75,7 @@ def showHeighResult(frame_left, frame_right, height, depth):
         height (float|None): estimated height, if None it's assumed it was not possible to track and/or detect any person in the images
         depth (float): estimated depth
     """
+    print(depth, height)
     success_height = height is not None
 
     if success_height:
@@ -92,9 +93,9 @@ def showHeighResult(frame_left, frame_right, height, depth):
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
     cv2.imshow("frame right", cv2.resize(
-        frame_right, (np.array(frame_right.shape[:2][::-1])*1.5).astype(int)))
+        frame_right, (np.array(frame_right.shape[:2][::-1])*1).astype(int)))
     cv2.imshow("frame left", cv2.resize(
-        frame_left, (np.array(frame_right.shape[:2][::-1])*1.5).astype(int)))
+        frame_left, (np.array(frame_right.shape[:2][::-1])*1.).astype(int)))
     if cv2.waitKey(5) & 0xFF == 27:
         return True
     return False
@@ -246,8 +247,10 @@ class HeightDaemon:
                 print("Ignoring empty camera frame.")
                 continue
 
-            features_left = self.features_left.extract_keypts(frame_left)
-            features_right = self.features_right.extract_keypts(frame_right)
+            features_left = self.features_left.extract_keypts(
+                frame_left.copy())
+            features_right = self.features_right.extract_keypts(
+                frame_right.copy())
 
             if not features_left[0] or not features_right[0]:
                 self.movement_analizer.append_data(None)
