@@ -266,7 +266,8 @@ class HeightDaemon:
                                  self.f_length)
 
             self.movement_analizer.append_data(depth)
-            px_size = self.stereo_config.depth_to_pixel_size * depth
+            #  px_size = self.stereo_config.depth_to_pixel_size * depth
+            px_size = depth/self.f_length
             #  height = computeHeigth(features_left[1], px_size)
             height = computeHeigth2(features_left[1], px_size,
                                     self.stereo_config.left_camera.center)
